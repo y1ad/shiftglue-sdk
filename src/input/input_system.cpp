@@ -22,6 +22,7 @@
 #include <rex/input/pad_remap.h>
 #include <rex/input/sdl/sdl_input_driver.h>
 #include <rex/input/state_merge.h>
+#include <rex/input/touch/touch_input_driver.h>
 #include <rex/input/xinput/xinput_input_driver.h>
 #include <rex/logging.h>
 
@@ -383,6 +384,12 @@ std::unique_ptr<InputSystem> CreateDefaultInputSystem(bool tool_mode) {
     if (mnk_driver->Setup() == X_STATUS_SUCCESS) {
       input->AddDriver(std::move(mnk_driver));
     }
+
+#if REX_PLATFORM_ANDROID
+    // On-screen touch controls: a synthetic pad on guest user 0, merged with any
+    // physical pad. Registered ahead of the NOP driver so it answers capabilities.
+    input->AddDriver(std::make_unique<touch::TouchInputDriver>(nullptr, 0));
+#endif
   }
 
   // NOP driver (primary in tool mode, fallback otherwise)
