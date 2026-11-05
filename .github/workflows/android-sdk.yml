@@ -21,7 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ANDROID_API: "29"
+  # memfd_create (guest memory mirrors) is only declared by bionic from API 30.
+  ANDROID_API: "30"
   ANDROID_ABI: arm64-v8a
 
 jobs:
@@ -82,15 +83,14 @@ jobs:
           {
             echo "### Configure errors"
             echo '```'
-            grep -E "CMake Error|CMake Warning" -A4 configure.log | head -60 || true
+            grep -E "CMake Error" -A4 configure.log | head -60 || true
             echo '```'
             echo "### Build errors (first 80)"
             echo '```'
-            grep -E "error:|FAILED:|undefined reference|ld.lld: error" build.log | sort -u | head -80 || true
+            grep -E " error: |FAILED:|undefined reference|ld.lld: error" build.log | sed -E 's#/home/runner/work/[^/]+/[^/]+/##' | sort -u | head -80 || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          ls -lh build/lib* build/out 2>/dev/null || true
-          find build -name '*.so' -newer configure.log | head -20
+          find build -name '*.so' | head -20
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -106,6 +106,6 @@ jobs:
         with:
           name: android-arm64-libs
           path: |
-            out/android-arm64/**/*.so
+            build/**/*.so
           if-no-files-found: warn
           retention-days: 7
